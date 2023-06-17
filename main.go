@@ -25,8 +25,12 @@ func (h *WebsocketHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 }
-
+func homePage(w http.ResponseWriter, r *http.Request){
+  fmt.Fprintf(w, "HomePage!")
+  fmt.Println("Endpoint Hit: homePage")
+}
 func main() {
+	http.HandleFunc("/", homePage)
 	http.HandleFunc("/ws", NewWebsocketHandler().Handle)
 
 	port := "8080"
