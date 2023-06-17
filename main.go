@@ -2,46 +2,56 @@ package main
 
 import (
 	"fmt"
-	"net/http"
 	"log"
+	"net/http"
+
+	"github.com/labstack/echo"
+	"github.com/labstack/echo/middleware"
 	"golang.org/x/net/websocket"
 )
 
-func homepage(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Welcome to the HomePage!")
-  fmt.Println("Endpoint Hit: homePage")
-}
-
-func HandleRequest() {
-	http.HandleFunc("/",homepage)
-	http.Handle("/ws", websocket.Handler(msgHandler))
-	http.ListenAndServe(":8080", nil)
-}
 func main() {
-	fmt.Println("main.go")
-	HandleRequest()
+	e := echo.New() // インスタンスを作成
+	e.Use(middleware.Logger()) // ミドルウェアを設定
+
+	e.GET("/", func(c echo.Context) error { // ルートを設定
+		return c.String(http.StatusOK, "Hello, World!") // 出力
+	})
+
+	e.Logger.Fatal(e.Start(":8080")) // サーバーをポート番号8080で起動
+	e.GET("/socket", handleWebSocket)
 }
-func msgHandler(ws *websocket.Conn) {
-	defer ws.Close()
 
-	// 初回のメッセージを送信
-	err := websocket.Message.Send(ws, "こんにちは！ :)")
-	if err != nil {
-			log.Fatalln(err)
-	}
+func handleWebSocket(c echo.Context) error {
+	log.Println("Serving at localhost:8080...")
+	websocket.Handler(func(ws *websocket.Conn) {
+			defer ws.Close()
 
-	for {
-			// メッセージを受信する
-			msg := ""
-			err = websocket.Message.Receive(ws, &msg)
+			// 初回のメッセージを送信
+			err := websocket.Message.Send(ws, "Server: Hello, Next.js!")
 			if err != nil {
-					log.Fatalln(err)
+				c.Logger().Error(err)
 			}
 
-			// メッセージを返信する
-			err := websocket.Message.Send(ws, fmt.Sprintf(`%q というメッセージを受け取りました。`, msg))
-			if err != nil {
-					log.Fatalln(err)
+			for {
+				// Client からのメッセージを読み込む
+				msg := ""
+				err := websocket.Message.Receive(ws, &msg)
+				if err != nil {
+					if err.Error() == "EOF" {
+					log.Println(fmt.Errorf("read %s", err))
+					break
+					}
+					log.Println(fmt.Errorf("read %s", err))
+					c.Logger().Error(err)
+				}
+
+				// Client からのメッセージを元に返すメッセージを作成し送信する
+				err = websocket.Message.Send(ws, fmt.Sprintf("Server: \"%s\" received!", msg))
+				if err != nil {
+					c.Logger().Error(err)
+				}
 			}
-	}
+	}).ServeHTTP(c.Response(), c.Request())
+	return nil
 }
