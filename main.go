@@ -5,41 +5,33 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/labstack/echo"
-	"github.com/labstack/echo/middleware"
-	"golang.org/x/net/websocket"
+	"github.com/gorilla/websocket"
 )
 
-func main() {
-	fmt.Println("main.go")
-	HandleRequest()
+type WebsocketHandler struct {}
+
+func NewWebsocketHandler() *WebsocketHandler {
+	return &WebsocketHandler{}
 }
 
-func handleWebSocket(c echo.Context) error {
-	log.Println("Serving at localhost:8080...")
-	websocket.Handler(func(ws *websocket.Conn) {
-			defer ws.Close()
+func (h *WebsocketHandler) Handle(w http.ResponseWriter, r *http.Request) {
+	upgrader := &websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
+	_, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
 
-			// 初回のメッセージを送信
-			err := websocket.Message.Send(ws, "Server: Hello, Next.js!")
-			if err != nil {
-				c.Logger().Error(err)
-			}
+func main() {
+	http.HandleFunc("/ws", NewWebsocketHandler().Handle)
 
-	for {
-			// メッセージを受信する
-			msg := ""
-			err = websocket.Message.Receive(ws, &msg)
-			if err != nil {
-					log.Fatalln(err)
-			}
-
-				// Client からのメッセージを元に返すメッセージを作成し送信する
-				err = websocket.Message.Send(ws, fmt.Sprintf("Server: \"%s\" received!", msg))
-				if err != nil {
-					c.Logger().Error(err)
-				}
-			}
-	}).ServeHTTP(c.Response(), c.Request())
-	return nil
+	port := "8080"
+	log.Printf("Listening on port %s", port)
+	if err := http.ListenAndServe(fmt.Sprintf(":%v", port), nil); err != nil {
+		log.Panicln("Serve Error:", err)
+	}
 }
