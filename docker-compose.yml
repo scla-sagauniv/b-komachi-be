@@ -1,0 +1,20 @@
+version: '3' # composeファイルのバージョン
+services:
+  boiler-plate:
+    # サービス名
+    container_name: b-komachi-be
+    ports:
+      - "8080:8080"
+    build:
+      # ビルドに使うDockerファイルのパス
+      context: .
+      dockerfile: ./build/Dockerfile
+    volumes:
+      # マウントディレクトリ
+      - ./:/go/src/github.com/app
+    tty: true # コンテナの永続化
+    env_file:
+      # .envファイル
+      - ./build/.go_env
+    environment:
+      - TZ=Asia/Tokyo
