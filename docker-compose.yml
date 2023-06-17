@@ -8,13 +8,13 @@ services:
     build:
       # ビルドに使うDockerファイルのパス
       context: .
-      dockerfile: ./build/Dockerfile
+      dockerfile: ./Dockerfile
     volumes:
       # マウントディレクトリ
       - ./:/go/src/github.com/app
     tty: true # コンテナの永続化
     env_file:
       # .envファイル
-      - ./build/.go_env
+      - ./.go_env
     environment:
       - TZ=Asia/Tokyo
